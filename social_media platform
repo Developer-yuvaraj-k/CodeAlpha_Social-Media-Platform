@@ -1,0 +1,163 @@
+# Folder: django_backend/users_app/models.py
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+class CustomUser(AbstractUser):
+    bio = models.TextField(blank=True)
+    profile_pic = models.ImageField(upload_to='profile_pics/', blank=True)
+    followers = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
+
+
+# Folder: django_backend/users_app/views.py
+from django.shortcuts import render
+from django.contrib.auth import login, authenticate
+from django.contrib.auth.forms import UserCreationForm
+from django.http import JsonResponse
+
+def register_view(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return JsonResponse({"message": "User registered successfully"})
+    else:
+        form = UserCreationForm()
+    return render(request, 'register.html', {'form': form})
+
+
+# Folder: express_backend/routes/posts.js
+const express = require("express");
+const router = express.Router();
+
+let posts = [];
+
+router.post("/create", (req, res) => {
+  const { userId, content } = req.body;
+  const newPost = {
+    id: posts.length + 1,
+    userId,
+    content,
+    createdAt: new Date(),
+    likes: 0
+  };
+  posts.push(newPost);
+  res.status(201).json(newPost);
+});
+
+router.get("/feed", (req, res) => {
+  res.json(posts);
+});
+
+module.exports = router;
+
+
+# Folder: express_backend/routes/comments.js
+const express = require("express");
+const router = express.Router();
+
+let comments = [];
+
+router.post("/add", (req, res) => {
+  const { postId, userId, text } = req.body;
+  const newComment = {
+    id: comments.length + 1,
+    postId,
+    userId,
+    text,
+    createdAt: new Date()
+  };
+  comments.push(newComment);
+  res.status(201).json(newComment);
+});
+
+module.exports = router;
+
+
+# Folder: express_backend/app.js
+const express = require("express");
+const app = express();
+const postsRoutes = require("./routes/posts");
+const commentsRoutes = require("./routes/comments");
+
+app.use(express.json());
+app.use("/posts", postsRoutes);
+app.use("/comments", commentsRoutes);
+
+app.listen(3000, () => {
+  console.log("Express server running on http://localhost:3000");
+});
+
+
+# Folder: frontend/index.html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Social Media Home</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Welcome to the Social Media Platform</h1>
+  <div id="feed"></div>
+  <script src="main.js"></script>
+</body>
+</html>
+
+
+# Folder: frontend/profile.html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Profile</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>User Profile</h2>
+  <p>Username: <span id="username"></span></p>
+  <p>Bio: <span id="bio"></span></p>
+</body>
+</html>
+
+
+# Folder: frontend/style.css
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f4f4f4;
+} /* ✅ Fixed missing closing brace */
+
+h1, h2 {
+  color: #333;
+}
+
+
+# Folder: frontend/main.js
+fetch('http://localhost:3000/posts/feed')
+  .then(res => res.json())
+  .then(posts => {
+    const feed = document.getElementById('feed');
+    posts.forEach(post => {
+      const div = document.createElement('div');
+      div.innerHTML = `<p>${post.content}</p><hr>`;
+      feed.appendChild(div);
+    });
+  });
+
+
+# Root README.md
+# 🌐 Social Media Platform
+
+## 📦 Tech Stack
+- Django (Auth & Profiles)
+- Express.js (Posts, Comments)
+- HTML, CSS, JS (Frontend)
+
+## 📁 Structure
+- `frontend/`: UI Pages
+- `django_backend/`: User & Auth
+- `express_backend/`: Feed & Posts
+
+## 🚀 Steps
+1. Run Django server (users_app)
+2. Run Express server (`node app.js`)
+3. Serve `index.html` and interact with APIs
